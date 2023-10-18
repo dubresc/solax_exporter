@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Workspace environment files
+.env
+
+# Build artifacts
+solax-exporter
