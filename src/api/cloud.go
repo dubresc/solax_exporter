@@ -99,7 +99,13 @@ func InverterStatusCodeFromString(s string) InverterStatusCode {
 }
 
 type CloudAPIRespose struct {
+	InverterSN     string
+	SN             string
 	InverterStatus InverterStatusCode
+	ACPower        float64
+	YieldToday     float64
+	YieldTotal     float64
+	FeedInPower    float64
 }
 
 type CloudApiParseError struct {
@@ -116,6 +122,20 @@ func (CloudApiError) Error() string {
 	return "API Error"
 }
 
+func GetField[K any](m map[string]interface{}, f string) (K, bool) {
+	var res K
+
+	iface, ok := m[f]
+
+	if !ok {
+		return res, false
+	}
+
+	res, ok = iface.(K)
+
+	return res, ok
+}
+
 func Parse(r []byte) (*CloudAPIRespose, error) {
 	var j map[string]interface{}
 
@@ -124,51 +144,68 @@ func Parse(r []byte) (*CloudAPIRespose, error) {
 	var res CloudAPIRespose
 
 	if err != nil {
-		//fmt.Printf("Error unmarshaling json: %s", err)
 		return nil, err
 	}
 
-	rawSuccess, ok := j["success"]
+	success, ok := GetField[bool](j, "success")
 
 	if !ok {
-		return nil, &CloudApiParseError{Cause: "No \"success\" field"}
-	}
-
-	success, ok := rawSuccess.(bool)
-
-	if !ok {
-		return nil, &CloudApiParseError{Cause: "\"success\" field not bool"}
+		return nil, &CloudApiParseError{Cause: "No \"success\" field or not bool"}
 	}
 
 	if !success {
 		return nil, &CloudApiError{}
 	}
 
-	rawResult, ok := j["result"]
+	result, ok := GetField[map[string]interface{}](j, "result")
 
 	if !ok {
-		return nil, &CloudApiParseError{Cause: "No \"result\" field"}
+		return nil, &CloudApiParseError{Cause: "No \"result\" field or not an object"}
 	}
 
-	result, ok := rawResult.(map[string]interface{})
+	res.InverterSN, ok = GetField[string](result, "inverterSN")
 
 	if !ok {
-		return nil, &CloudApiParseError{Cause: "\"result\" field is not ab object"}
+		return nil, &CloudApiParseError{Cause: "No \"inverterSN\" field or not a string"}
 	}
 
-	rawInverterStatus, ok := result["inverterStatus"]
+	res.SN, ok = GetField[string](result, "sn")
 
 	if !ok {
-		return nil, &CloudApiParseError{Cause: "No \"inverterStatus\" field"}
+		return nil, &CloudApiParseError{Cause: "No \"sn\" field or not a string"}
 	}
 
-	inverterStatus, ok := rawInverterStatus.(string)
+	inverterStatus, ok := GetField[string](result, "inverterStatus")
 
 	if !ok {
-		return nil, &CloudApiParseError{Cause: "\"inverterStatus\" field not a string"}
+		return nil, &CloudApiParseError{Cause: "No \"inverterStatus\" field or not a string"}
 	}
 
 	res.InverterStatus = InverterStatusCodeFromString(inverterStatus)
+
+	res.ACPower, ok = GetField[float64](result, "acpower")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"acpower\" field or not a number"}
+	}
+
+	res.YieldToday, ok = GetField[float64](result, "yieldtoday")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"yieldtoday\" field or not a number"}
+	}
+
+	res.YieldTotal, ok = GetField[float64](result, "yieldtotal")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"yieldtotal\" field or not a number"}
+	}
+
+	res.FeedInPower, ok = GetField[float64](result, "feedinpower")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"feedinpower\" field or not a number"}
+	}
 
 	return &res, nil
 }

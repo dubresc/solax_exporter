@@ -42,7 +42,13 @@ func TestParseCloud(t *testing.T) {
 	}
 
 	want := api.CloudAPIRespose{
+		InverterSN:     "NOTAREALSN4242",
+		SN:             "NOTAREALSN",
 		InverterStatus: api.NormalMode,
+		ACPower:        587.0,
+		YieldToday:     4.2,
+		YieldTotal:     133.7,
+		FeedInPower:    0.0,
 	}
 
 	if *r != want {
