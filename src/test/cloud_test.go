@@ -2,8 +2,10 @@ package test
 
 import (
 	"encoding/json"
+	"reflect"
 	"solax-exporter/src/api"
 	"testing"
+	"time"
 )
 
 func TestParseCloud(t *testing.T) {
@@ -49,9 +51,27 @@ func TestParseCloud(t *testing.T) {
 		YieldToday:     4.2,
 		YieldTotal:     133.7,
 		FeedInPower:    0.0,
+		FeedInEnergy:   5.1,
+		ConsumeEnergy:  12.44,
+		FeedInPowerM2:  0.0,
+		SOC:            14.0,
+		Peps1:          new(float64),
+		Peps2:          nil,
+		Peps3:          nil,
+		UploadTime:     time.Date(2023, time.October, 18, 21, 25, 38, 0, time.UTC),
+		BatPower:       -576.0,
+		PowerDC1:       new(float64),
+		PowerDC2:       new(float64),
+		PowerDC3:       nil,
+		PowerDC4:       nil,
+		BatStatus:      "0",
 	}
 
-	if *r != want {
+	*want.Peps1 = 0.0
+	*want.PowerDC1 = 0.0
+	*want.PowerDC2 = 1.0
+
+	if !reflect.DeepEqual(*r, want) {
 		wantJson, _ := json.Marshal(want)
 		gotJson, _ := json.Marshal(*r)
 		t.Errorf("Incorrect response. Wanted %s, got %s", string(wantJson), string(gotJson))

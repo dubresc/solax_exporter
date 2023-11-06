@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type CloudAPI struct {
@@ -10,102 +11,29 @@ type CloudAPI struct {
 	TokenID *string
 }
 
-type InverterStatusCode string
-
-const (
-	Undefined          InverterStatusCode = ""
-	WaitMode           InverterStatusCode = "100"
-	CheckMode          InverterStatusCode = "101"
-	NormalMode         InverterStatusCode = "102"
-	FaultMode          InverterStatusCode = "103"
-	PermanentFaultMode InverterStatusCode = "104"
-	UpdateMode         InverterStatusCode = "105"
-	EPSCheckMode       InverterStatusCode = "106"
-	EPSMode            InverterStatusCode = "107"
-	SelfTestMode       InverterStatusCode = "108"
-	IdleMode           InverterStatusCode = "109"
-	StandbyMode        InverterStatusCode = "110"
-	PvWakeUpBatMode    InverterStatusCode = "111"
-	GenCheckMode       InverterStatusCode = "112"
-	GenRunMode         InverterStatusCode = "113"
-)
-
-func (i InverterStatusCode) String() string {
-	switch i {
-	case WaitMode:
-		return "wait_mode"
-	case CheckMode:
-		return "check_mode"
-	case NormalMode:
-		return "normal_mode"
-	case FaultMode:
-		return "fault_mode"
-	case PermanentFaultMode:
-		return "permanent_fault_mode"
-	case UpdateMode:
-		return "update_mode"
-	case EPSCheckMode:
-		return "eps_check_mode"
-	case EPSMode:
-		return "eps_mode"
-	case SelfTestMode:
-		return "self_test_mode"
-	case IdleMode:
-		return "idle_mode"
-	case StandbyMode:
-		return "standby_mode"
-	case PvWakeUpBatMode:
-		return "pv_wake_up_bat_mode"
-	case GenCheckMode:
-		return "gen_check_mode"
-	case GenRunMode:
-		return "gen_run_mode"
-	}
-	return "undefined"
-}
-
-func InverterStatusCodeFromString(s string) InverterStatusCode {
-	switch s {
-	case string(WaitMode):
-		return WaitMode
-	case string(CheckMode):
-		return CheckMode
-	case string(NormalMode):
-		return NormalMode
-	case string(FaultMode):
-		return FaultMode
-	case string(PermanentFaultMode):
-		return PermanentFaultMode
-	case string(UpdateMode):
-		return UpdateMode
-	case string(EPSCheckMode):
-		return EPSCheckMode
-	case string(EPSMode):
-		return EPSMode
-	case string(SelfTestMode):
-		return SelfTestMode
-	case string(IdleMode):
-		return IdleMode
-	case string(StandbyMode):
-		return StandbyMode
-	case string(PvWakeUpBatMode):
-		return PvWakeUpBatMode
-	case string(GenCheckMode):
-		return GenCheckMode
-	case string(GenRunMode):
-		return GenRunMode
-	}
-	return Undefined
-}
-
 type CloudAPIRespose struct {
 	InverterSN     string
 	SN             string
-	InverterStatus InverterStatusCode
 	ACPower        float64
 	YieldToday     float64
 	YieldTotal     float64
 	FeedInPower    float64
+	FeedInEnergy   float64
+	ConsumeEnergy  float64
+	FeedInPowerM2  float64
+	SOC            float64
+	Peps1          *float64
+	Peps2          *float64
+	Peps3          *float64
+	InverterType   InverterTypeCode
+	InverterStatus InverterStatusCode
+	UploadTime     time.Time
+	BatPower       float64
+	PowerDC1       *float64
+	PowerDC2       *float64
+	PowerDC3       *float64
+	PowerDC4       *float64
+	BatStatus      string // TODO
 }
 
 type CloudApiParseError struct {
@@ -134,6 +62,24 @@ func GetField[K any](m map[string]interface{}, f string) (K, bool) {
 	res, ok = iface.(K)
 
 	return res, ok
+}
+
+func GetNullableField[K any](m map[string]interface{}, f string) *K {
+	var res K
+
+	iface, ok := m[f]
+
+	if !ok {
+		return nil
+	}
+
+	res, ok = iface.(K)
+
+	if !ok {
+		return nil
+	}
+
+	return &res
 }
 
 func Parse(r []byte) (*CloudAPIRespose, error) {
@@ -205,6 +151,66 @@ func Parse(r []byte) (*CloudAPIRespose, error) {
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"feedinpower\" field or not a number"}
+	}
+
+	res.FeedInEnergy, ok = GetField[float64](result, "feedinenergy")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"feedinenergy\" field or not a number"}
+	}
+
+	res.ConsumeEnergy, ok = GetField[float64](result, "consumeenergy")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"consumeenergy\" field or not a number"}
+	}
+
+	res.FeedInPowerM2, ok = GetField[float64](result, "feedinpowerM2")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"feedinpowerM2\" field or not a number"}
+	}
+
+	res.SOC, ok = GetField[float64](result, "soc")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"soc\" field or not a number"}
+	}
+
+	res.Peps1 = GetNullableField[float64](result, "peps1")
+	res.Peps2 = GetNullableField[float64](result, "peps2")
+	res.Peps3 = GetNullableField[float64](result, "peps3")
+
+	// TODO inverterType
+
+	uploadTime, ok := GetField[string](result, "uploadTime")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"uploadTime\" field or not a string"}
+	}
+
+	res.UploadTime, err = time.Parse(time.DateTime, uploadTime)
+
+	if err != nil {
+		return nil, &CloudApiParseError{Cause: "Failed to parse \"uploadTime\""}
+	}
+
+	res.BatPower, ok = GetField[float64](result, "batPower")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"batPower\" field or not a number"}
+	}
+
+	res.PowerDC1 = GetNullableField[float64](result, "powerdc1")
+	res.PowerDC2 = GetNullableField[float64](result, "powerdc2")
+	res.PowerDC3 = GetNullableField[float64](result, "powerdc3")
+	res.PowerDC4 = GetNullableField[float64](result, "powerdc4")
+
+	// TODO: resolve to a enum
+	res.BatStatus, ok = GetField[string](result, "batStatus")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"batStatus\" field or not a string"}
 	}
 
 	return &res, nil
