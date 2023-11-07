@@ -3,13 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 )
-
-type CloudAPI struct {
-	SN      *string
-	TokenID *string
-}
 
 type CloudAPIRespose struct {
 	InverterSN     string
@@ -34,6 +31,28 @@ type CloudAPIRespose struct {
 	PowerDC3       *float64
 	PowerDC4       *float64
 	BatStatus      string // TODO
+}
+
+type CloudAPI struct {
+	SN           string
+	TokenID      string
+	requestUrl   string
+	lastResponse *CloudAPIRespose
+}
+
+func MakeCloudApi(sn string, token_id string) *CloudAPI {
+	if len(sn) == 0 || len(token_id) == 0 {
+		return nil
+	}
+
+	api := CloudAPI{
+		SN:           sn,
+		TokenID:      token_id,
+		requestUrl:   fmt.Sprintf("https://www.solaxcloud.com/proxyApp/proxy/api/getRealtimeInfo.do?tokenId=%s&sn=%s", token_id, sn),
+		lastResponse: nil,
+	}
+
+	return &api
 }
 
 type CloudApiParseError struct {
@@ -216,6 +235,26 @@ func Parse(r []byte) (*CloudAPIRespose, error) {
 	return &res, nil
 }
 
-func (r CloudAPI) Request() {
-	// TODO
+func (r CloudAPI) Request() (*CloudAPIRespose, error) {
+	if r.lastResponse != nil && time.Now().Sub(r.lastResponse.UploadTime).Minutes() < 5.0 {
+		return r.lastResponse, nil
+	}
+
+	res, err := http.Get(r.requestUrl)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO check status
+
+	body, err := io.ReadAll(res.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	r.lastResponse, err = Parse(body)
+
+	return r.lastResponse, err
 }

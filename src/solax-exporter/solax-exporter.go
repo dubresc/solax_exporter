@@ -9,11 +9,20 @@ import (
 )
 
 type MetricsHandler struct {
-	cloud_api api.CloudAPI
+	cloud_api *api.CloudAPI
 }
 
 func (m MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "#TODO metrics")
+	if m.cloud_api != nil {
+		cloud_response, err := m.cloud_api.Request()
+
+		if err == nil {
+			io.WriteString(w, "# HELP yield_total Total energy yield of inverter in KWh\n")
+			io.WriteString(w, "# TYPE yield_total counter\n")
+			io.WriteString(w, fmt.Sprintf("yield_total{sn=\"%s\"}=%f\n", m.cloud_api.SN, cloud_response.YieldTotal))
+		}
+	}
+	io.WriteString(w, "#TODO metrics\n")
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +34,7 @@ func main() {
 	var sn string
 	var token_id string
 
+	// Should be possible to provide more than one SN
 	flag.StringVar(&sn, "sn", "", "Specify inverter SN.")
 	flag.StringVar(&token_id, "token-id", "", "Specify Solax API token-id.")
 	flag.IntVar(&port, "p", 9100, "Port to serve.")
@@ -32,10 +42,7 @@ func main() {
 	flag.Parse()
 
 	metrics := MetricsHandler{
-		api.CloudAPI{
-			SN:      &sn,
-			TokenID: &token_id,
-		},
+		api.MakeCloudApi(sn, token_id),
 	}
 
 	http.HandleFunc("/", root)
