@@ -250,6 +250,8 @@ func (r CloudAPI) Request() (*CloudAPIRespose, error) {
 
 	body, err := io.ReadAll(res.Body)
 
+	res.Body.Close()
+
 	if err != nil {
 		return nil, err
 	}
