@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 ARGS=""
 
@@ -10,4 +10,4 @@ if [ -n "${SOLAX_SN}" ]; then
     ARGS="${ARGS} --sn ${SOLAX_SN}"
 fi
 
-./solax-exporter ${ARGS} $@
+./solax_exporter ${ARGS} $@

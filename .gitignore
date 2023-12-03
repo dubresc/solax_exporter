@@ -25,3 +25,4 @@ go.work
 
 # Build artifacts
 solax-exporter
+solax_exporter

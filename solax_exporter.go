@@ -116,7 +116,8 @@ func main() {
 
 	flag.Parse()
 
-	prometheus.MustRegister(&CloudCollector{
+	r := prometheus.NewRegistry()
+	r.MustRegister(&CloudCollector{
 		solax.MakeCloudApiRequester(sn, token_id),
 	})
 
@@ -130,7 +131,7 @@ func main() {
              </html>`),
 		)
 	})
-	http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
 
 	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 

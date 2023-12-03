@@ -4,11 +4,13 @@ WORKDIR /opt/workspace
 
 COPY . .
 
-RUN go build ./src/solax-exporter/
+RUN CGO_ENABLED=0 GOOS=linux go build -o solax_exporter .
 
 FROM alpine
 
-COPY --from=builder /opt/workspace/solax-exporter .
+WORKDIR /opt/workspace
+
+COPY --from=builder /opt/workspace/solax_exporter .
 COPY entrypoint.sh .
 
 ENTRYPOINT [ entrypoint.sh ]
