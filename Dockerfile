@@ -13,4 +13,4 @@ WORKDIR /opt/workspace
 COPY --from=builder /opt/workspace/solax_exporter .
 COPY entrypoint.sh .
 
-ENTRYPOINT [ entrypoint.sh ]
+ENTRYPOINT [ "sh", "/opt/workspace/entrypoint.sh" ]
