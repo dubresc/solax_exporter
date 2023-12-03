@@ -1,4 +1,4 @@
-package api
+package solax
 
 import (
 	"encoding/json"
@@ -33,19 +33,19 @@ type CloudAPIRespose struct {
 	BatStatus      string // TODO
 }
 
-type CloudAPI struct {
+type CloudApiRequester struct {
 	SN           string
 	TokenID      string
 	requestUrl   string
 	lastResponse *CloudAPIRespose
 }
 
-func MakeCloudApi(sn string, token_id string) *CloudAPI {
+func MakeCloudApiRequester(sn string, token_id string) *CloudApiRequester {
 	if len(sn) == 0 || len(token_id) == 0 {
 		return nil
 	}
 
-	api := CloudAPI{
+	api := CloudApiRequester{
 		SN:           sn,
 		TokenID:      token_id,
 		requestUrl:   fmt.Sprintf("https://www.solaxcloud.com/proxyApp/proxy/api/getRealtimeInfo.do?tokenId=%s&sn=%s", token_id, sn),
@@ -101,7 +101,7 @@ func GetNullableField[K any](m map[string]interface{}, f string) *K {
 	return &res
 }
 
-func Parse(r []byte) (*CloudAPIRespose, error) {
+func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 	var j map[string]interface{}
 
 	err := json.Unmarshal(r, &j)
@@ -147,6 +147,14 @@ func Parse(r []byte) (*CloudAPIRespose, error) {
 	}
 
 	res.InverterStatus = InverterStatusCodeFromString(inverterStatus)
+
+	inverterType, ok := GetField[string](result, "inverterType")
+
+	if !ok {
+		return nil, &CloudApiParseError{Cause: "No \"inverterType\" field or not a string"}
+	}
+
+	res.InverterType = InverterTypeFromString(inverterType)
 
 	res.ACPower, ok = GetField[float64](result, "acpower")
 
@@ -235,7 +243,7 @@ func Parse(r []byte) (*CloudAPIRespose, error) {
 	return &res, nil
 }
 
-func (r CloudAPI) Request() (*CloudAPIRespose, error) {
+func (r CloudApiRequester) Request() (*CloudAPIRespose, error) {
 	if r.lastResponse != nil && time.Now().Sub(r.lastResponse.UploadTime).Minutes() < 5.0 {
 		return r.lastResponse, nil
 	}
@@ -254,7 +262,7 @@ func (r CloudAPI) Request() (*CloudAPIRespose, error) {
 		return nil, err
 	}
 
-	r.lastResponse, err = Parse(body)
+	r.lastResponse, err = ParseCloudRespose(body)
 
 	return r.lastResponse, err
 }

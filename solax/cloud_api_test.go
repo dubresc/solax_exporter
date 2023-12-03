@@ -1,15 +1,14 @@
-package test
+package solax
 
 import (
 	"encoding/json"
 	"reflect"
-	"solax-exporter/src/api"
 	"testing"
 	"time"
 )
 
 func TestParseCloud(t *testing.T) {
-	r, err := api.Parse([]byte(`{
+	r, err := ParseCloudRespose([]byte(`{
 		"success":true,
 		"exception":"Query success!",
 		"result":{
@@ -43,10 +42,10 @@ func TestParseCloud(t *testing.T) {
 		t.Errorf("Parse returned error %s", err)
 	}
 
-	want := api.CloudAPIRespose{
+	want := CloudAPIRespose{
 		InverterSN:     "NOTAREALSN4242",
 		SN:             "NOTAREALSN",
-		InverterStatus: api.NormalMode,
+		InverterStatus: NormalMode,
 		ACPower:        587.0,
 		YieldToday:     4.2,
 		YieldTotal:     133.7,
