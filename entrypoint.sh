@@ -10,4 +10,8 @@ if [ -n "${SOLAX_SN}" ]; then
     ARGS="${ARGS} --sn ${SOLAX_SN}"
 fi
 
+if [ -n "${SOLAX_EXPORTER_PORT}" ]; then
+    ARGS="${ARGS} -p ${SOLAX_EXPORTER_PORT}"
+fi
+
 ./solax_exporter ${ARGS} $@

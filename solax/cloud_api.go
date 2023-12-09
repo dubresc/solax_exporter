@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -45,10 +46,23 @@ func MakeCloudApiRequester(sn string, token_id string) *CloudApiRequester {
 		return nil
 	}
 
+	url := url.URL{
+		Scheme: "https",
+		Host:   "www.solaxcloud.com",
+		Path:   "proxyApp/proxy/api/getRealtimeInfo.do",
+	}
+
+	query := url.Query()
+
+	query.Set("tokenId", token_id)
+	query.Set("sn", sn)
+
+	url.RawQuery = query.Encode()
+
 	api := CloudApiRequester{
 		SN:           sn,
 		TokenID:      token_id,
-		requestUrl:   fmt.Sprintf("https://www.solaxcloud.com/proxyApp/proxy/api/getRealtimeInfo.do?tokenId=%s&sn=%s", token_id, sn),
+		requestUrl:   url.String(),
 		lastResponse: nil,
 	}
 

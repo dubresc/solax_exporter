@@ -23,7 +23,7 @@ const (
 	A1_Grid           InverterTypeCode = "A1-Grid"
 	J1_ESS            InverterTypeCode = "J1-ESS"
 	X3_Hybrid_G4      InverterTypeCode = "X3-Hybrid-G4"
-	X1_Hybrid_G4      InverterTypeCode = "X3-Hybrid-G4"
+	X1_Hybrid_G4      InverterTypeCode = "X1-Hybrid-G4"
 	X3_MIC_PRO_G2     InverterTypeCode = "X3-MIC_Pro-G2"
 	X1_SPT            InverterTypeCode = "X1-SPT"
 	X1_Boost_Mini_G4  InverterTypeCode = "X1-Boost_Mini-G4"
