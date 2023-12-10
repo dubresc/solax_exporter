@@ -1,19 +1,24 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
-	"solax-exporter/metrics"
-	"solax-exporter/solax"
+	"solax_exporter/metrics"
+	"solax_exporter/solax"
 
+	"github.com/alecthomas/kingpin/v2"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
 )
 
 type CloudCollector struct {
 	cloud_api *solax.CloudApiRequester
+	logger    log.Logger
 }
 
 var (
@@ -65,7 +70,7 @@ func (g *CloudCollector) Collect(ch chan<- prometheus.Metric) {
 		cloud_response, err := g.cloud_api.Request()
 
 		if err != nil {
-			fmt.Printf("Reuqest error %s\n", err)
+			level.Error(g.logger).Log("msg", "Cloud Request Error", "error", err)
 			return
 		}
 
@@ -106,19 +111,22 @@ func (g *CloudCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func main() {
-	var port int
-	var sn string
-	var token_id string
+	sn := kingpin.Flag("sn", "Specify inverter SN.").Required().String()
+	// Will not be required after local api
+	token_id := kingpin.Flag("token-id", "Specify Solax API token ID").Required().String()
+	port := kingpin.Flag("port", "Port to serve on.").Default("9100").Int()
 
-	flag.StringVar(&sn, "sn", "", "Specify inverter SN.")
-	flag.StringVar(&token_id, "token-id", "", "Specify Solax API token-id.")
-	flag.IntVar(&port, "p", 9100, "Port to serve.")
+	promLogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promLogConfig)
 
-	flag.Parse()
+	kingpin.Parse()
+
+	logger := promlog.New(promLogConfig)
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(&CloudCollector{
-		solax.MakeCloudApiRequester(sn, token_id),
+		solax.MakeCloudApiRequester(*sn, *token_id),
+		logger,
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -133,9 +141,10 @@ func main() {
 	})
 	http.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
 
 	if err != nil {
+		level.Error(logger).Log("msg", "Error starting HTTP server", "error", err)
 		fmt.Printf("Error %s\n", err)
 		os.Exit(1)
 	}

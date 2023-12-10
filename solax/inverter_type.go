@@ -1,7 +1,7 @@
 package solax
 
 import (
-	"solax-exporter/metrics"
+	"solax_exporter/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
