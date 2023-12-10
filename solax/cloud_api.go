@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"solax_exporter/metrics"
 	"time"
 )
 
@@ -83,38 +84,6 @@ func (CloudApiError) Error() string {
 	return "API Error"
 }
 
-func GetField[K any](m map[string]interface{}, f string) (K, bool) {
-	var res K
-
-	iface, ok := m[f]
-
-	if !ok {
-		return res, false
-	}
-
-	res, ok = iface.(K)
-
-	return res, ok
-}
-
-func GetNullableField[K any](m map[string]interface{}, f string) *K {
-	var res K
-
-	iface, ok := m[f]
-
-	if !ok {
-		return nil
-	}
-
-	res, ok = iface.(K)
-
-	if !ok {
-		return nil
-	}
-
-	return &res
-}
-
 func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 	var j map[string]interface{}
 
@@ -126,7 +95,7 @@ func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 		return nil, err
 	}
 
-	success, ok := GetField[bool](j, "success")
+	success, ok := metrics.GetField[bool](j, "success")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"success\" field or not bool"}
@@ -136,25 +105,25 @@ func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 		return nil, &CloudApiError{}
 	}
 
-	result, ok := GetField[map[string]interface{}](j, "result")
+	result, ok := metrics.GetField[map[string]interface{}](j, "result")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"result\" field or not an object"}
 	}
 
-	res.InverterSN, ok = GetField[string](result, "inverterSN")
+	res.InverterSN, ok = metrics.GetField[string](result, "inverterSN")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"inverterSN\" field or not a string"}
 	}
 
-	res.SN, ok = GetField[string](result, "sn")
+	res.SN, ok = metrics.GetField[string](result, "sn")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"sn\" field or not a string"}
 	}
 
-	inverterStatus, ok := GetField[string](result, "inverterStatus")
+	inverterStatus, ok := metrics.GetField[string](result, "inverterStatus")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"inverterStatus\" field or not a string"}
@@ -162,7 +131,7 @@ func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 
 	res.InverterStatus = InverterStatusCodeFromString(inverterStatus)
 
-	inverterType, ok := GetField[string](result, "inverterType")
+	inverterType, ok := metrics.GetField[string](result, "inverterType")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"inverterType\" field or not a string"}
@@ -170,61 +139,61 @@ func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 
 	res.InverterType = InverterTypeFromString(inverterType)
 
-	res.ACPower, ok = GetField[float64](result, "acpower")
+	res.ACPower, ok = metrics.GetField[float64](result, "acpower")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"acpower\" field or not a number"}
 	}
 
-	res.YieldToday, ok = GetField[float64](result, "yieldtoday")
+	res.YieldToday, ok = metrics.GetField[float64](result, "yieldtoday")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"yieldtoday\" field or not a number"}
 	}
 
-	res.YieldTotal, ok = GetField[float64](result, "yieldtotal")
+	res.YieldTotal, ok = metrics.GetField[float64](result, "yieldtotal")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"yieldtotal\" field or not a number"}
 	}
 
-	res.FeedInPower, ok = GetField[float64](result, "feedinpower")
+	res.FeedInPower, ok = metrics.GetField[float64](result, "feedinpower")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"feedinpower\" field or not a number"}
 	}
 
-	res.FeedInEnergy, ok = GetField[float64](result, "feedinenergy")
+	res.FeedInEnergy, ok = metrics.GetField[float64](result, "feedinenergy")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"feedinenergy\" field or not a number"}
 	}
 
-	res.ConsumeEnergy, ok = GetField[float64](result, "consumeenergy")
+	res.ConsumeEnergy, ok = metrics.GetField[float64](result, "consumeenergy")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"consumeenergy\" field or not a number"}
 	}
 
-	res.FeedInPowerM2, ok = GetField[float64](result, "feedinpowerM2")
+	res.FeedInPowerM2, ok = metrics.GetField[float64](result, "feedinpowerM2")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"feedinpowerM2\" field or not a number"}
 	}
 
-	res.SOC, ok = GetField[float64](result, "soc")
+	res.SOC, ok = metrics.GetField[float64](result, "soc")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"soc\" field or not a number"}
 	}
 
-	res.Peps1 = GetNullableField[float64](result, "peps1")
-	res.Peps2 = GetNullableField[float64](result, "peps2")
-	res.Peps3 = GetNullableField[float64](result, "peps3")
+	res.Peps1 = metrics.GetNullableField[float64](result, "peps1")
+	res.Peps2 = metrics.GetNullableField[float64](result, "peps2")
+	res.Peps3 = metrics.GetNullableField[float64](result, "peps3")
 
 	// TODO inverterType
 
-	uploadTime, ok := GetField[string](result, "uploadTime")
+	uploadTime, ok := metrics.GetField[string](result, "uploadTime")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"uploadTime\" field or not a string"}
@@ -236,19 +205,19 @@ func ParseCloudRespose(r []byte) (*CloudAPIRespose, error) {
 		return nil, &CloudApiParseError{Cause: "Failed to parse \"uploadTime\""}
 	}
 
-	res.BatPower, ok = GetField[float64](result, "batPower")
+	res.BatPower, ok = metrics.GetField[float64](result, "batPower")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"batPower\" field or not a number"}
 	}
 
-	res.PowerDC1 = GetNullableField[float64](result, "powerdc1")
-	res.PowerDC2 = GetNullableField[float64](result, "powerdc2")
-	res.PowerDC3 = GetNullableField[float64](result, "powerdc3")
-	res.PowerDC4 = GetNullableField[float64](result, "powerdc4")
+	res.PowerDC1 = metrics.GetNullableField[float64](result, "powerdc1")
+	res.PowerDC2 = metrics.GetNullableField[float64](result, "powerdc2")
+	res.PowerDC3 = metrics.GetNullableField[float64](result, "powerdc3")
+	res.PowerDC4 = metrics.GetNullableField[float64](result, "powerdc4")
 
 	// TODO: resolve to a enum
-	res.BatStatus, ok = GetField[string](result, "batStatus")
+	res.BatStatus, ok = metrics.GetField[string](result, "batStatus")
 
 	if !ok {
 		return nil, &CloudApiParseError{Cause: "No \"batStatus\" field or not a string"}
